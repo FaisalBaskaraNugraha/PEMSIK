@@ -45,7 +45,7 @@ const ModalMahasiswa = ({
                             onChange={onChange} // Menerima perubahan dari Parent
                             readOnly={isEdit} 
                             placeholder="Masukkan NIM"
-                            required
+                            // Hapus 'required' di sini untuk menonaktifkan validasi native
                             className="mt-1"
                         />
                     </div>
@@ -57,7 +57,7 @@ const ModalMahasiswa = ({
                             value={form.nama}
                             onChange={onChange} // Menerima perubahan dari Parent
                             placeholder="Masukkan Nama Lengkap"
-                            required
+                            // Hapus 'required' di sini untuk menonaktifkan validasi native
                             className="mt-1"
                         />
                     </div>

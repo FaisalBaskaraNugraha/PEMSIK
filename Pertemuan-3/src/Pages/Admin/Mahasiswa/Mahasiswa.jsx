@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; 
 
+// Import Helper untuk Notifikasi dan Konfirmasi. Tambahkan confirmUpdate.
+import { toastSuccess, toastError } from "@/Utils/Helpers/ToastHelpers";
+import { confirmDelete, confirmUpdate } from "@/Utils/Helpers/SwalHelpers";
+
 // Import komponen kustom umum
 import Card from "@/Pages/Layouts/Components/Card";
 import Heading from "@/Pages/Layouts/Components/Heading";
 import Button from "@/Pages/Layouts/Components/Button";
-// Hapus import Form, Input, Label karena sudah dipindahkan ke ModalMahasiswa
 
 // Import Komponen Anak yang Baru Dibuat
 import TableMahasiswa from "./TableMahasiswa"; 
@@ -29,7 +32,6 @@ const Mahasiswa = () => {
         setTimeout(() => {
             setMahasiswa(mahasiswaList); 
             setIsLoading(false); 
-            console.log("Data mahasiswa berhasil dimuat.");
         }, 500);
     };
 
@@ -47,7 +49,6 @@ const Mahasiswa = () => {
     
     const addMahasiswa = (newData) => {
         setMahasiswa([...mahasiswa, newData]);
-        console.log(`Mahasiswa ${newData.nama} berhasil ditambahkan.`);
     };
     
     const updateMahasiswa = (nim, newData) => {
@@ -55,13 +56,11 @@ const Mahasiswa = () => {
             mhs.nim === nim ? {...mhs, ...newData} : mhs
         );
         setMahasiswa(updated);
-        console.log(`Mahasiswa NIM ${nim} berhasil diupdate menjadi ${newData.nama}.`);
     };
 
     const deleteMahasiswa = (nim) => {
         const filtered = mahasiswa.filter((mhs) => mhs.nim !== nim);
         setMahasiswa(filtered);
-        console.log(`Mahasiswa NIM ${nim} berhasil dihapus.`);
     }
 
     // --- Modal Handlers ---
@@ -76,24 +75,38 @@ const Mahasiswa = () => {
       e.preventDefault();
       
       if (!form.nim || !form.nama) {
-        console.error("NIM dan Nama wajib diisi"); 
+        toastError("NIM dan Nama wajib diisi");
         return;
       }
       
       if (isEdit) {
+        // --- LOGIKA UPDATE MENGGUNAKAN CONFIRMATION ---
+        confirmUpdate(() => {
           updateMahasiswa(form.nim, form);
+          // Notifikasi sukses akan muncul dari SwalHelpers, tapi kita juga bisa tambahkan toast di sini
+          // Namun, karena SwalHelpers sudah menampilkan "Diperbarui!", toast ini dihilangkan.
+          // Jika ingin menggunakan toastSuccess("Data berhasil diperbarui");, pastikan SwalHelpers tidak double-notif.
+          
+          // Tutup modal dan reset form setelah update
+          setForm({ nim: "", nama: "" });
+          setIsEdit(false);
+          setIsModalOpen(false);
+        });
+
       } else {
+          // --- LOGIKA CREATE TANPA CONFIRMATION ---
           const exists = mahasiswa.find((m) => m.nim === form.nim);
           if (exists) {
-            console.error("NIM sudah terdaftar!");
+            toastError("NIM sudah terdaftar!");
             return;
           }
           addMahasiswa(form);
+          toastSuccess(`Mahasiswa ${form.nama} berhasil ditambahkan.`); // Notifikasi Create
+          
+          // Tutup modal dan reset form setelah create
+          setForm({ nim: "", nama: "" });
+          setIsModalOpen(false);
       }
-
-      setForm({ nim: "", nama: "" });
-      setIsEdit(false);
-      setIsModalOpen(false);
     }
     
     // --- Action Handlers untuk Tombol di Tabel (Callback Props) ---
@@ -105,11 +118,12 @@ const Mahasiswa = () => {
       setIsModalOpen(true);
     };
     
-    // Handler Hapus: Memanggil fungsi deleteMahasiswa
+    // Handler Hapus: Memanggil SweetAlert2 konfirmasi
     const handleDelete = (nim) => {
-        if (window.confirm("Yakin ingin hapus data ini?")) {
+        confirmDelete(() => {
             deleteMahasiswa(nim);
-        }
+            // SwalHelpers sudah menampilkan notifikasi "Dihapus!", tidak perlu toast lagi di sini
+        });
     };
     
     // Handler Detail: Menggunakan useNavigate
@@ -135,21 +149,21 @@ const Mahasiswa = () => {
             ) : (
                 /* Integrasi TableMahasiswa: Mengirim data dan callback */
                 <TableMahasiswa
-                  data={mahasiswa} // Data turun (One-Way Data Flow)
-                  onEdit={handleEdit} // Callback naik (Aksi pengguna di tabel dikirim ke parent)
-                  onDelete={handleDelete} // Callback naik
-                  onDetail={handleDetail} // Callback naik
+                    data={mahasiswa}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDetail={handleDetail}
                 />
             )}
 
             {/* Integrasi ModalMahasiswa: Mengirim state dan form handlers */}
             <ModalMahasiswa
-              isOpen={isModalOpen}
-              isEdit={isEdit}
-              form={form} // Data form (value) turun
-              onChange={handleChange} // Fungsi perubahan (event) naik
-              onClose={() => setIsModalOpen(false)} // Fungsi tutup modal naik
-              onSubmit={handleSubmit} // Fungsi submit form naik
+                isOpen={isModalOpen}
+                isEdit={isEdit}
+                form={form}
+                onChange={handleChange}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleSubmit}
             />
         </Card>
     );

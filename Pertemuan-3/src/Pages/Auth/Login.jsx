@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+// Import Toast Helpers
+import { toastSuccess, toastError } from "@/Utils/Helpers/ToastHelpers"; 
+
 import Input from "@/Pages/Layouts/Components/Input";
 import Label from "@/Pages/Layouts/Components/Label";
 import Button from "@/Pages/Layouts/Components/Button";
@@ -18,8 +22,7 @@ const Login = () => {
         email: "",
         password: "",
     });
-    // State untuk pesan error di UI
-    const [error, setError] = useState("");
+    // Menghapus state error karena akan diganti dengan toast
 
     // Mengelola perubahan input (Controlled Component)
     const handleChange = (e) => {
@@ -28,16 +31,24 @@ const Login = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Reset error message
-        setError(""); 
+        
         const { email, password } = form;
 
         if (email === dummyUser.email && password === dummyUser.password) {
+            // 1. Tampilkan notifikasi sukses
+            toastSuccess("Login berhasil. Selamat datang!");
+            
+            // 2. Lanjutkan proses login
             localStorage.setItem("user", JSON.stringify(dummyUser));
-            navigate("/admin/dashboard");
+            
+            // Memberi sedikit jeda agar toast terlihat (Opsional, tapi praktik yang baik)
+            setTimeout(() => {
+                navigate("/admin/dashboard");
+            }, 500);
+            
         } else {
-            // Mengganti alert() dengan state error untuk ditampilkan di UI
-            setError("Email atau password salah!");
+            // Tampilkan notifikasi error, tidak perlu state lokal
+            toastError("Email atau password salah!");
         }
     };
 
@@ -45,12 +56,7 @@ const Login = () => {
         <Card className="max-w-md">
             <Heading as="h2">Login</Heading>
             
-            {/* Tampilkan pesan error jika state error terisi */}
-            {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 shadow-sm">
-                    {error}
-                </div>
-            )}
+            {/* Hapus blok error di UI karena sudah diganti dengan Toast */}
             
             <Form onSubmit={handleSubmit}>
                 <div>
