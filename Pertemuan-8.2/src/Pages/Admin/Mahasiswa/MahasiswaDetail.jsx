@@ -1,101 +1,120 @@
 import React, { useState, useEffect } from "react";
-// 1. Import hook untuk mengambil parameter URL (id)
-import { useParams } from "react-router-dom"; 
+import { useParams } from "react-router-dom"; // Hook untuk mengambil parameter dari URL
 
-// 2. Import fungsi API dan helper
-import { getMahasiswa } from "@/Utils/Apis/MahasiswaApi";
+// Import Helper untuk Notifikasi
 import { toastError } from "@/Utils/Helpers/ToastHelpers";
+// --- API Imports ---
+import { getDetailMahasiswa } from "@/Utils/Apis/MahasiswaApi"; // API untuk mengambil data detail
+// --- END API Imports ---
 
-// 3. Import komponen UI (sesuaikan dengan kebutuhan layout Anda)
-import Card from "@/Pages/Layouts/Components/Card"; 
-import Heading from "@/Pages/Layouts/Components/Heading"; 
-import Button from "@/Pages/Layouts/Components/Button"; // Contoh jika ada tombol Kembali/Edit
+import Card from "@/Pages/Layouts/Components/Card";
+import Heading from "@/Pages/Layouts/Components/Heading";
 
 const MahasiswaDetail = () => {
-    // --- State Management & Hooks ---
-    
-    // Mendapatkan nilai 'id' dari parameter URL (misal: /mahasiswa/123)
-    const { id } = useParams(); 
-    
-    // State untuk menyimpan data detail mahasiswa
-    const [mahasiswa, setMahasiswa] = useState(null); 
-    // State untuk mengontrol status loading data
-    const [loading, setLoading] = useState(true);
+  // 1. Mengambil parameter 'id' dari URL.
+  // Nama 'id' harus sesuai dengan yang dikonfigurasi di file routing (main.jsx: path: ":id")
+  const { id } = useParams();
 
-    // --- Data Flow: READ Detail Operation ---
+  // State untuk menyimpan data mahasiswa yang diambil dan status loading
+  const [mahasiswa, setMahasiswa] = useState(null); // Nilai awal null, bukan array
+  const [isLoading, setIsLoading] = useState(true);
 
-    // Fungsi asinkron untuk mengambil data detail mahasiswa berdasarkan ID
-    const fetchMahasiswa = async () => {
-        setLoading(true); // Mulai proses loading
-        try {
-            // Panggil fungsi API dengan ID yang didapat dari useParams
-            const res = await getMahasiswa(id); 
-            // Asumsi API mengembalikan { data: { mahasiswa } }
-            setMahasiswa(res.data); 
-        } catch (err) {
-            // Tangani error, misal jika ID tidak ditemukan (404)
-            console.error("Error fetching mahasiswa detail:", err);
-            toastError("Gagal mengambil data mahasiswa.");
-        } finally {
-            setLoading(false); // Selesai loading, terlepas dari sukses/gagal
-        }
-    };
-    
-    // Life Cycle: Panggil fetchMahasiswa saat komponen dimuat atau 'id' berubah
-    useEffect(() => {
-        // Cek apakah 'id' ada sebelum melakukan fetch (pencegahan awal)
-        if (id) {
-            fetchMahasiswa();
-        } else {
-            setLoading(false);
-            toastError("ID mahasiswa tidak ditemukan di URL.");
-        }
-    }, [id]); // Dependensi pada 'id' memastikan fetch dipicu jika parameter URL berubah
+  // --- Fungsi Pemuatan Data Detail ---
+  const fetchMahasiswaDetail = async () => {
+    setIsLoading(true);
+    try {
+      // 2. Panggil API untuk mendapatkan detail, meneruskan ID yang diambil dari URL
+      const res = await getDetailMahasiswa(id);
+      setMahasiswa(res.data); // Update state mahasiswa dengan data detail
+    } catch (error) {
+      // Menampilkan error jika API gagal atau data tidak ditemukan
+      toastError(`Gagal memuat data detail Mahasiswa dengan ID ${id}.`);
+      console.error("Error fetching detail: ", error);
+      setMahasiswa(null); // Set ke null untuk memicu tampilan "Data tidak ditemukan"
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    // --- Conditional Rendering ---
-    
-    // Tampilkan pesan loading saat data masih diambil
-    if (loading) {
-        return <p className="text-center py-10 text-lg">Memuat data...</p>;
-    }
+  // Efek Samping: Dipanggil saat komponen di-mount atau ketika 'id' di URL berubah
+  useEffect(() => {
+    fetchMahasiswaDetail();
+  }, [id]); // Dependensi [id]: Memastikan fetch data ulang jika ID berubah di URL
 
-    // Tampilkan pesan jika data tidak ditemukan (misal API mengembalikan null/kosong)
-    if (!mahasiswa) {
-        return (
-            <div className="text-center py-10">
-                <p className="text-xl text-red-500">Data mahasiswa tidak ditemukan</p>
-                <Button onClick={() => window.history.back()} className="mt-4">Kembali</Button>
-            </div>
-        );
-    }
+  // --- Render Conditional: Loading State ---
+  if (isLoading) {
+    return (
+      <Card>
+        <p className="text-xl text-center text-blue-600 font-semibold p-4">
+          Memuat detail Mahasiswa...
+        </p>
+      </Card>
+    );
+  }
 
-    // --- Render Komponen UI Detail ---
-    return (
-        <Card>
-            <Heading as="h2">Detail Mahasiswa: {mahasiswa.nama}</Heading>
-            <hr className="my-4"/>
-            
-            {/* Tampilkan data yang sudah dimuat */}
-            <div className="space-y-3 text-gray-700">
-                <p><strong>ID:</strong> {mahasiswa.id}</p>
-                <p><strong>NIM:</strong> {mahasiswa.nim}</p>
-                <p><strong>Nama:</strong> {mahasiswa.nama}</p>
-                {/* Tambahkan field detail lainnya di sini */}
-                <p><strong>Email:</strong> {mahasiswa.email || '-'}</p>
-                <p><strong>Tanggal Lahir:</strong> {mahasiswa.tanggal_lahir || '-'}</p>
-            </div>
+  // --- Render Conditional: Data Not Found ---
+  // Tampil jika loading selesai TAPI data mahasiswa null (misalnya, API merespons 404)
+  if (!mahasiswa) {
+    return (
+      <Card>
+        <p className="text-xl text-center text-red-600 font-semibold p-4">
+          Data mahasiswa dengan ID **{id}** tidak ditemukan.
+        </p>
+      </Card>
+    );
+  }
 
-            <div className="mt-6 flex space-x-2">
-                <Button variant="secondary" onClick={() => window.history.back()}>
-                    Kembali
-                </Button>
-                {/* Anda bisa tambahkan tombol edit jika diperlukan */}
-                {/* <Button variant="warning" onClick={() => navigate(`/admin/mahasiswa/edit/${mahasiswa.id}`)}>
-                    Edit Data
-                </Button> */}
-            </div>
-        </Card>
-    );
+  // --- Render Utama: Menampilkan Detail Data ---
+  return (
+    <Card>
+      <Heading as="h2" className="mb-4 text-left">
+        Detail Mahasiswa
+      </Heading>
+      {/* Menampilkan Nama dan NIM */}
+      <h2 className="text-xl font-bold mb-1 text-gray-800">
+        Nama: {mahasiswa.nama}
+      </h2>
+      
+      {/* Tabel detail atribut mahasiswa */}
+      <table className="table-auto text-sm w-full border-collapse">
+        <tbody>
+          <tr className="border-b border-gray-200">
+            <td className="py-3 px-4 font-semibold w-1/3 text-gray-700">ID</td>
+            <td className="py-3 px-4 w-2/3 text-gray-900 font-mono">
+              {mahasiswa.id}
+            </td>
+          </tr>
+          {/* Baris untuk NIM */}
+          <tr className="border-b border-gray-200">
+            <td className="py-3 px-4 font-semibold w-1/3 text-gray-700">NIM</td>
+            <td className="py-3 px-4 w-2/3 text-gray-900 font-mono">
+              {mahasiswa.nim}
+            </td>
+          </tr>
+          {/* Baris untuk Nama */}
+          <tr className="border-b border-gray-200">
+            <td className="py-3 px-4 font-semibold w-1/3 text-gray-700">Nama</td>
+            <td className="py-3 px-4 w-2/3 text-gray-900 font-medium">
+              {mahasiswa.nama}
+            </td>
+          </tr>
+          {/* Baris untuk Program Studi (jika ada) */}
+          <tr className="border-b border-gray-200">
+            <td className="py-3 px-4 font-semibold w-1/3 text-gray-700">
+              Program Studi
+            </td>
+            <td className="py-3 px-4 w-2/3 text-gray-900 font-medium">
+              {mahasiswa.prodi || "N/A"}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p className="mt-4 p-2 bg-yellow-100 text-yellow-800 rounded">
+        Menampilkan detail mahasiswa dengan ID: **{id}**
+      </p>
+    </Card>
+  );
 };
 
 export default MahasiswaDetail;

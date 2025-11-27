@@ -1,32 +1,47 @@
-import axios from "@/Utils/AxiosInstance"; // Asumsi AxiosInstance sudah dikonfigurasi
+// File: src/Utils/Apis/AuthApi.js
+
+import axios from "@/Utils/AxiosInstance"; // Import instance axios yang telah dikonfigurasi
 
 /**
- * Fungsi untuk melakukan proses login.
- * Mengambil data user berdasarkan email, kemudian memverifikasi password.
- * @param {string} email - Email yang dimasukkan pengguna.
- * @param {string} password - Password yang dimasukkan pengguna.
- * @returns {Promise<object>} Objek user jika login berhasil.
- * @throws {Error} Jika email tidak ditemukan atau password salah.
+ * Fungsi untuk melakukan login dengan mencari user berdasarkan email.
+ * Ini adalah simulasi, di mana password dikirim dalam bentuk teks biasa.
+ *
+ * @param {string} email - Email pengguna.
+ * @param {string} password - Password pengguna.
+ * @returns {Promise<Object>} - Mengembalikan objek user jika login berhasil.
+ * @throws {Error} - Melemparkan error jika email tidak ditemukan atau password salah.
  */
-export const login = async ( email, password ) => {
-    // 1. Panggil API GET /user dengan filter email (JSON Server)
-    // JSON Server secara otomatis memfilter array 'user' untuk menemukan objek dengan 'email' yang sesuai.
-    const res = await axios.get("/user", { params: { email } });
-    
-    // Hasil dari JSON Server berupa array, ambil elemen pertama (user yang ditemukan)
-    const user = res.data[0]; 
+export const login = async (email, password) => {
+    try {
+        // 1. Panggil endpoint /user dengan query parameter 'email'.
+        // JSON Server (atau API yang mensimulasikannya) akan mencari user yang cocok.
+        // Contoh request: GET /user?email=admin@mail.com
+        const res = await axios.get("/user", { 
+            params: { 
+                email: email // Filter data di server berdasarkan email
+            } 
+        });
+        
+        // Asumsi respons dari GET adalah array, dan kita mengambil elemen pertama (jika ada)
+        const user = res.data[0];
 
-    // 2. Verifikasi Keberadaan Email
-    if (!user) {
-        // Jika array kosong (res.data.length === 0), berarti email tidak ada.
-        throw new Error("Email tidak ditemukan");
-    }
-    
-    // 3. Verifikasi Password (Dilakukan secara client-side karena ini adalah setup JSON Server sederhana)
-    if (user.password !== password) {
-        throw new Error("Password salah");
-    }
+        // 2. Validasi Email: Cek apakah user ditemukan
+        if (!user) {
+            // Melemparkan error yang akan ditangkap di komponen Login.jsx
+            throw new Error("Email tidak ditemukan");
+        }
 
-    // 4. Login Berhasil: Kembalikan objek user
-    return user;
+        // 3. Validasi Password: Membandingkan password yang diinput dengan password di data
+        // CATATAN: Dalam produksi, ini harus diverifikasi menggunakan hashing (misalnya bcrypt).
+        if (user.password !== password) {
+            throw new Error("Password salah");
+        }
+
+        // 4. Login Berhasil: Mengembalikan objek user yang berhasil login
+        return user; 
+
+    } catch (error) {
+        // Melemparkan error kembali ke komponen pemanggil untuk menampilkan Toast Error
+        throw error; 
+    }
 };

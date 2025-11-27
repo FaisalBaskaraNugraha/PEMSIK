@@ -1,12 +1,15 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// File: src/Pages/Auth/Login.jsx
 
-// 1. Import fungsi login dari AuthApi
-import { login } from "@/Utils/Apis/AuthApi";
-// 2. Import Toast Helpers
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Hook untuk navigasi setelah login
+
+// Import Toast Helpers untuk notifikasi pop-up
 import { toastSuccess, toastError } from "@/Utils/Helpers/ToastHelpers"; 
 
-// 3. Import Komponen UI
+// Import fungsi login dari API yang sudah dibuat
+import { login } from "@/Utils/Apis/AuthApi";
+
+// Import komponen UI kustom
 import Input from "@/Pages/Layouts/Components/Input";
 import Label from "@/Pages/Layouts/Components/Label";
 import Button from "@/Pages/Layouts/Components/Button";
@@ -15,89 +18,90 @@ import Card from "@/Pages/Layouts/Components/Card";
 import Heading from "@/Pages/Layouts/Components/Heading";
 import Form from "@/Pages/Layouts/Components/Form";
 
-// Hapus import { dummyUser } dari "@/Data/Dummy"; karena tidak digunakan lagi
-
 const Login = () => {
-    const navigate = useNavigate();
+    const navigate = useNavigate(); // Inisialisasi navigasi
 
-    // State untuk mengontrol input form
+    // State untuk mengontrol input form (Controlled Component)
     const [form, setForm] = useState({
         email: "",
         password: "",
     });
 
-    // Mengelola perubahan input (Controlled Component)
+    // State untuk mengelola status loading/submitting tombol (untuk UX)
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Mengelola perubahan input (memperbarui state 'form')
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    // --- Flow: Form Submission (API Login) ---
+    // Handler ketika formulir disubmit
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Mencegah reload halaman default browser
         
         const { email, password } = form;
 
-        // Cek validasi dasar (jika diperlukan)
+        // Validasi input dasar di sisi klien
         if (!email || !password) {
             toastError("Email dan Password wajib diisi.");
             return;
         }
 
+        setIsSubmitting(true); // Aktifkan loading/disable tombol
+
         try {
-            // Panggil fungsi API login. Fungsi ini akan melempar error jika gagal.
-            const user = await login(email, password); 
+            // Panggil fungsi login dari AuthApi.js
+            const user = await login(email, password);
             
-            // LOGIKA LOGIN BERHASIL:
-            
-            // 1. Simpan objek user ke Local Storage (untuk menjaga state login)
+            // Simpan data user yang berhasil (dari API) ke Local Storage
             localStorage.setItem("user", JSON.stringify(user));
             
-            // 2. Tampilkan notifikasi sukses (menggunakan data user jika perlu)
-            toastSuccess(`Login berhasil. Selamat datang, ${user.name}!`);
+            // Tampilkan notifikasi sukses
+            toastSuccess("Login berhasil. Selamat datang!");
             
-            // 3. Navigasi ke halaman dashboard
-            // Tidak perlu setTimeout karena API call sudah memakan waktu
-            navigate("/admin/dashboard");
+            // Arahkan user ke halaman dashboard setelah jeda singkat
+            setTimeout(() => {
+                navigate("/admin/dashboard");
+            }, 500);
 
         } catch (err) {
-            // LOGIKA LOGIN GAGAL:
-            // Tangkap error yang dilempar oleh fungsi login (misal: "Email tidak ditemukan" atau "Password salah")
-            console.error("Login Gagal:", err);
-            // Tampilkan pesan error kepada pengguna
-            toastError(err.message || "Terjadi kesalahan saat menghubungi server."); 
+            // Jika login gagal (email tidak ditemukan/password salah), tampilkan error dari API
+            toastError(err.message || "Terjadi kesalahan saat login.");
+        } finally {
+            setIsSubmitting(false); // Nonaktifkan loading/enable tombol kembali
         }
     };
 
-    // --- Render Komponen UI ---
     return (
         <Card className="max-w-md">
             <Heading as="h2">Login</Heading>
             
             <Form onSubmit={handleSubmit}>
-                {/* Field Email */}
+                {/* Bagian Input Email */}
                 <div>
                     <Label htmlFor="email">Email</Label>
                     <Input
                         type="email"
                         name="email"
-                        value={form.email}
-                        onChange={handleChange}
+                        value={form.email} 
+                        onChange={handleChange} // Memanggil handler perubahan input
                         placeholder="Masukkan email"
                         required
                     />
                 </div>
-                {/* Field Password */}
+                {/* Bagian Input Password */}
                 <div>
                     <Label htmlFor="password">Password</Label>
                     <Input
                         type="password"
                         name="password"
-                        value={form.password}
-                        onChange={handleChange}
+                        value={form.password} 
+                        onChange={handleChange} // Memanggil handler perubahan input
                         placeholder="Masukkan password"
                         required
                     />
                 </div>
+                {/* ... Opsi dan Link Lain ... */}
                 <div className="flex justify-between items-center">
                     <label className="flex items-center">
                         <input type="checkbox" className="mr-2" />
@@ -107,10 +111,12 @@ const Login = () => {
                         Lupa password?
                     </Link>
                 </div>
-                <Button type="submit" className="w-full">
-                    Login
+                {/* Tombol Submit */}
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? "Memproses..." : "Login"} {/* Teks dinamis sesuai status */}
                 </Button>
             </Form>
+            {/* ... Teks pendaftaran ... */}
             <p className="text-sm text-center text-gray-600 mt-4">
                 Belum punya akun? <Link href="#">Daftar</Link>
             </p>
